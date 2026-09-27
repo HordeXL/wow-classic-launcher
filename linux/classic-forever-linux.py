@@ -279,7 +279,8 @@ def store_state(pid, array):
             return 'invalid'
         key = raw[o + 4:o + 36]
         ok = key in (KNOWN_KEYS[e], NEW_KEY) if e == TARGET_GROUP - 1 else key == KNOWN_KEYS[e]
-        if not ok or raw[o + 36] != EXPECTED_FLAGS[e] or raw[o + 37:o + 40] != b'\x7f\x00\x00':
+        # relleno tras el flag: 7f 00 00 en Windows, 00 00 00 bajo Wine/Proton (medido el 27-09 en CachyOS)
+        if not ok or raw[o + 36] != EXPECTED_FLAGS[e] or raw[o + 37] not in (0x7f, 0x00) or raw[o + 38:o + 40] != b'\x00\x00':
             return 'invalid'
     o8 = (TARGET_GROUP - 1) * ENTRY_SIZE + 4
     return 'patched' if raw[o8:o8 + 32] == NEW_KEY else 'original'
