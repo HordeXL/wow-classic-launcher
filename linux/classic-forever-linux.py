@@ -322,12 +322,33 @@ def ready():
 GAME_DIR = None
 
 
+def better_client(pid):
+    """Otro proceso con WowB.exe cargado y bastante mas memoria que el actual (el actual era el lanzador de
+    Wine/Proton, no el juego). None si el actual ya es el mayor."""
+    try:
+        cands = [p for p in find_clients() if p != pid]
+    except OSError:
+        return None
+    mine = rss(pid)
+    for p in cands:
+        if rss(p) > max(mine * 2, 50 * 1024):   # paginas: 50k paginas = 200 MB
+            return p
+    return None
+
+
 def watch(pid):
     store, ever, waiting_said = None, False, False
+    last_report = 0.0
     while True:
         if not alive(pid):
             say('El juego se cerro. Hasta la proxima.', 'cyan')
             return 0
+        if store is None and time.time() - last_report > 10:
+            other = better_client(pid)
+            if other:
+                say(f'El proceso {pid} ({rss(pid) * 4 // 1024} MB) parece el lanzador; el juego es el PID {other} '
+                    f'({rss(other) * 4 // 1024} MB). Me paso a el.', 'yellow')
+                pid, waiting_said = other, False
         if store is not None:
             st = store_state(pid, store)
             if st == 'patched':
@@ -368,10 +389,10 @@ def watch(pid):
             continue
         if len(found) > 1:
             say(f'Hay {len(found)} almacenes validos a la vez: no escribo hasta que quede uno.', 'yellow')
-        elif not waiting_said:
-            say(f'Esperando a que entres al reino... (busqueda: {info})', 'dim')
-            waiting_said = True
-        time.sleep(15 if ever else 0.1)
+        elif not waiting_said or time.time() - last_report > 10:
+            say(f'Esperando a que entres al reino... (busqueda: {info}; proceso {pid}, {rss(pid) * 4 // 1024} MB)', 'dim')
+            waiting_said, last_report = True, time.time()
+        time.sleep(2 if ever else 0.1)
 
 
 # ------------------------------------------------------------------------------------------- principal
@@ -401,6 +422,10 @@ def main():
     elif cmd:
         if game_dir and not any(x.lower() == '-config' for x in cmd):
             cmd += ['-config', CONFIG_NAME]
+        if os.geteuid() == 0:
+            say('No abro el juego como root: Wine usaria el prefijo de root y el cliente falla (BC_ASSERT). Abre el '
+                'juego como tu usuario y luego: sudo python3 classic-forever-linux.py --pid <PID> --game-dir <carpeta>', 'red')
+            return 1
         say('Abriendo el juego...', 'cyan')
         child = subprocess.Popen(cmd)
         pid = None
