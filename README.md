@@ -42,10 +42,24 @@ El `.exe` es solo para Windows. En Linux usa [`linux/classic-forever-linux.py`](
 4. Juega desde Steam. El script escribe el portal, abre el juego y pone la clave; su registro queda en
    `_classic_beta_/Logs/launcher-linux.log`.
 
+**Proton sin Steam (umu-run)**: `python3 classic-forever-linux.py umu-run "/ruta/_classic_beta_/WowB.exe"`.
+
 **Wine a mano**: `python3 classic-forever-linux.py wine "/ruta/_classic_beta_/WowB.exe"`.
+
+**Todo en uno**: [`linux/classic-forever.sh`](linux/classic-forever.sh) descarga el parcheador y, si el juego ya esta
+abierto, se engancha (pide `sudo` solo para eso); si no, lo abre con `wine`. Edita `GAME_DIR` o pasalo por entorno.
+`--update` vuelve a descargar el parcheador, `--launch` fuerza abrir el juego.
 
 Como el script abre el juego, Linux le deja acceder a su memoria sin `sudo`. Para engancharse a un juego ya abierto:
 `sudo python3 classic-forever-linux.py --pid <PID> --game-dir "/ruta/_classic_beta_"`.
+
+Avisos (medidos el 27-09-2026 en CachyOS):
+- **Nunca abras el juego con `sudo`**: Wine correria como root sobre tu prefijo, deja ficheros de root en `~/.wine` y en
+  `_classic_beta_/Cache` y el cliente falla despues con `BC_ASSERT`. Si ya paso: `sudo chown -R $USER:$USER ~/.wine
+  "/ruta/_classic_beta_"` y borra `_classic_beta_/Cache`.
+- Si el juego vuelve al login nada mas conectar ("has sido desconectado"), la clave no estaba puesta: mira el registro.
+  Bajo Wine/Proton el almacen de claves lleva relleno `00` en vez de `7f`; las versiones del parcheador anteriores al
+  27-09 lo descartaban y nunca parcheaban. Vuelve a descargar el script.
 
 ## Qué hace (y qué no)
 
