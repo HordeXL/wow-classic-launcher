@@ -298,6 +298,39 @@ def find_stores(pid):
     return found, f'{total // (1024 * 1024)} MB, {time.time() - t0:.1f} s, {len(hits)} copias, {len(found)} almacen(es)'
 
 
+def diagnose_block(pid, array):
+    """Por que un bloque que empieza con la clave 1 no valida: una linea por entrada (id, que clave conocida es,
+    flag, relleno) y el motivo del rechazo."""
+    out = []
+    reg = region_of(pid, array, BLOCK_SIZE)
+    if not reg:
+        return [f'    bloque 0x{array:X}: no cabe entero en una region rw-p anonima (region_of=None)']
+    try:
+        raw = read(pid, array, BLOCK_SIZE)
+    except OSError as ex:
+        return [f'    bloque 0x{array:X}: no legible ({ex})']
+    for e in range(ENTRY_COUNT):
+        o = e * ENTRY_SIZE
+        ident = int.from_bytes(raw[o:o + 4], 'little')
+        key = raw[o + 4:o + 36]
+        kn = [i + 1 for i, k in enumerate(KNOWN_KEYS) if k == key]
+        kname = f'clave{kn[0]}' if kn else ('NUEVA' if key == NEW_KEY else 'desconocida ' + key[:8].hex())
+        flag, pad = raw[o + 36], raw[o + 37:o + 40].hex()
+        bad = ''
+        if ident != e + 1:
+            bad = ' <- id esperado %d' % (e + 1)
+        elif not kn and key != NEW_KEY:
+            bad = ' <- clave no conocida'
+        elif kn and kn[0] != e + 1 and not (e == TARGET_GROUP - 1 and key == NEW_KEY):
+            bad = ' <- clave de otro grupo'
+        elif flag != EXPECTED_FLAGS[e]:
+            bad = ' <- flag esperado %d' % EXPECTED_FLAGS[e]
+        out.append(f'    e{e + 1:02d}: id={ident} {kname} flag={flag} pad={pad}{bad}')
+        if bad:
+            break
+    return out
+
+
 def describe_hits(pid, hits, n=4):
     """Diagnostico: que hay alrededor de cada copia de la clave 1 que NO valida como almacen (formato bajo Wine)."""
     out = []
@@ -309,7 +342,10 @@ def describe_hits(pid, hits, n=4):
             continue
         which = [i + 1 for i, k in enumerate(KNOWN_KEYS) if k in raw]
         out.append(f'  0x{h:X} (region {region_of(pid, h, 32)}): claves conocidas en el bloque {which}')
-        out.append('    ' + raw[:8].hex() + ' | ' + raw[8:48].hex() + ' | ' + raw[48:88].hex() + ' | ' + raw[88:].hex())
+        if len(which) >= 2:
+            out += diagnose_block(pid, h - 4)
+        else:
+            out.append('    ' + raw[:8].hex() + ' | ' + raw[8:48].hex() + ' | ' + raw[48:88].hex() + ' | ' + raw[88:].hex())
     return out
 
 
