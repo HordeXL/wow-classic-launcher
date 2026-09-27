@@ -17,7 +17,9 @@ PY="$DIR/classic-forever-linux.py"
 URL="https://raw.githubusercontent.com/defexnicolas/wow-classic-launcher/main/linux/classic-forever-linux.py"
 
 mkdir -p "$DIR"
-if [ ! -s "$PY" ] || [ -n "$(find "$PY" -mmin +30 2>/dev/null)" ] || [ "${1:-}" = "--update" ]; then
+UPDATE=0; LAUNCH=0
+for a in "$@"; do case "$a" in --update) UPDATE=1;; --launch) LAUNCH=1;; esac; done
+if [ ! -s "$PY" ] || [ -n "$(find "$PY" -mmin +30 2>/dev/null)" ] || [ "$UPDATE" = 1 ]; then
     echo "Descargando el parcheador..."
     curl -fsSL "$URL" -o "$PY.tmp" && mv "$PY.tmp" "$PY" || { [ -s "$PY" ] && echo "(sin red: uso la copia local)" || { echo "No pude descargar $URL"; exit 1; }; }
 fi
@@ -26,7 +28,7 @@ fi
 # PID del cliente: Wine pone WowB.exe en la linea de comandos del proceso
 PID="$(pgrep -f 'WowB\.exe' | head -1 || true)"
 
-if [ "${1:-}" != "--launch" ] && [ -n "$PID" ]; then
+if [ "$LAUNCH" = 0 ] && [ -n "$PID" ]; then
     echo "WowB.exe ya esta abierto (pid $PID): me engancho. Linux exige sudo para leer su memoria."
     exec sudo python3 "$PY" --pid "$PID" --game-dir "$GAME_DIR"
 fi

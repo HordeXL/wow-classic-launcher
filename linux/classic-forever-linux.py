@@ -285,11 +285,31 @@ def store_state(pid, array):
     return 'patched' if raw[o8:o8 + 32] == NEW_KEY else 'original'
 
 
+LAST_HITS = []
+
+
 def find_stores(pid):
+    global LAST_HITS
     t0 = time.time()
     hits, total = scan(pid, KNOWN_KEYS[0])
+    LAST_HITS = hits
     found = [(h - 4, s) for h in hits for s in [store_state(pid, h - 4)] if s != 'invalid']
     return found, f'{total // (1024 * 1024)} MB, {time.time() - t0:.1f} s, {len(hits)} copias, {len(found)} almacen(es)'
+
+
+def describe_hits(pid, hits, n=4):
+    """Diagnostico: que hay alrededor de cada copia de la clave 1 que NO valida como almacen (formato bajo Wine)."""
+    out = []
+    for h in hits[:n]:
+        try:
+            raw = read(pid, h - 8, 8 + ENTRY_SIZE * 2 + 8)
+        except OSError:
+            out.append(f'  0x{h:X}: no legible')
+            continue
+        which = [i + 1 for i, k in enumerate(KNOWN_KEYS) if k in raw]
+        out.append(f'  0x{h:X} (region {region_of(pid, h, 32)}): claves conocidas en el bloque {which}')
+        out.append('    ' + raw[:8].hex() + ' | ' + raw[8:48].hex() + ' | ' + raw[48:88].hex() + ' | ' + raw[88:].hex())
+    return out
 
 
 def patch(pid, array):
@@ -391,6 +411,9 @@ def watch(pid):
             say(f'Hay {len(found)} almacenes validos a la vez: no escribo hasta que quede uno.', 'yellow')
         elif not waiting_said or time.time() - last_report > 10:
             say(f'Esperando a que entres al reino... (busqueda: {info}; proceso {pid}, {rss(pid) * 4 // 1024} MB)', 'dim')
+            if LAST_HITS:
+                for line in describe_hits(pid, LAST_HITS):
+                    say(line, 'dim')
             waiting_said, last_report = True, time.time()
         time.sleep(2 if ever else 0.1)
 
