@@ -464,7 +464,11 @@ def main():
     ap.add_argument('--pid', type=int, help='engancharse a un WowB.exe ya abierto')
     ap.add_argument('command', nargs=argparse.REMAINDER, help='comando del juego (en Steam: %%command%%)')
     a = ap.parse_args()
-    cmd = [c for c in a.command if c != '--']
+    # Solo un '--' INICIAL (separador de argparse). Los interiores son de Steam:
+    # reaper SteamLaunch AppId=N -- steam-launch-wrapper -- proton waitforexitandrun WowB.exe
+    cmd = list(a.command)
+    if cmd and cmd[0] == '--':
+        cmd = cmd[1:]
 
     global GAME_DIR
     game_dir = GAME_DIR = a.game_dir or game_dir_from_command(cmd)
