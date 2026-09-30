@@ -40,9 +40,10 @@ chmod +x ClassicForever-x86_64.AppImage && ./ClassicForever-x86_64.AppImage
 
 Es la misma ventana que en Windows (estado, noticias, notas del parche, opciones) y **no necesita Steam ni `sudo`**:
 abre `WowB.exe` con Proton mediante [umu-launcher](https://github.com/Open-Wine-Components/umu-launcher) (va dentro) y
-pone la clave del servidor. La primera vez que pulsas JUGAR descarga GE-Proton y el entorno de Steam (≈1,5 GB, en
-`~/.local/share/umu` y `~/.local/share/Steam/compatibilitytools.d`); las siguientes arranca al momento. En **Opciones**
-puedes cambiar a Wine del sistema y añadir el launcher al menú de aplicaciones.
+pone la clave del servidor. **Si ya tienes Proton** (el de Steam, GE-Proton, proton-cachyos, el de Lutris o Heroic) lo
+usa: la primera vez solo descarga el entorno de Steam (≈300 MB, en `~/.local/share/umu`). Si no tienes ninguno, descarga
+también GE-Proton (≈1,5 GB en total). En **Opciones** puedes elegir qué Proton usar, cambiar a Wine del sistema y añadir
+el launcher al menú de aplicaciones.
 
 - Sigue haciendo falta el cliente beta instalado (con Battle.net en Lutris/Bottles/Steam, o copiando la carpeta
   `_classic_beta_` desde un Windows). La AppImage busca `_classic_beta_` sola en los prefijos habituales y en los discos

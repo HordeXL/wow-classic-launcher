@@ -99,6 +99,11 @@ T = {
     'set.wine':           ('Wine del sistema', 'System Wine'),
     'set.protonhint':     ('La primera vez descarga GE-Proton y el entorno de Steam (≈1,5 GB) en ~/.local/share/umu y ~/.local/share/Steam/compatibilitytools.d.',
                            'The first time it downloads GE-Proton and the Steam runtime (≈1.5 GB) into ~/.local/share/umu and ~/.local/share/Steam/compatibilitytools.d.'),
+    'set.protonhave':     ('Usa tu Proton instalado ({0}). La primera vez solo descarga el entorno de Steam (≈300 MB) en ~/.local/share/umu.',
+                           'Uses your installed Proton ({0}). The first time it only downloads the Steam runtime (≈300 MB) into ~/.local/share/umu.'),
+    'set.protonver':      ('Versión de Proton:', 'Proton version:'),
+    'set.protonauto':     ('Automático', 'Automatic'),
+    'set.protondl':       ('Descargar el último GE-Proton', 'Download the latest GE-Proton'),
     'set.cache':          ('CACHÉ DEL JUEGO', 'GAME CACHE'),
     'set.cachebtn':       ('Borrar caché', 'Clear cache'),
     'set.menu':           ('Añadir al menú de aplicaciones', 'Add to applications menu'),
@@ -116,6 +121,8 @@ T = {
     'run.nowine':         ('No encuentro «wine». Instálalo o usa Proton (Opciones).', "'wine' not found. Install it or use Proton (Settings)."),
     'run.noumu':          ('Falta umu-run: usa la AppImage o instala umu-launcher.', 'umu-run is missing: use the AppImage or install umu-launcher.'),
     'run.opening':        ('Abriendo el juego…', 'Opening the game…'),
+    'run.firstruntime':   ('Preparando el entorno de Steam por primera vez (≈300 MB, puede tardar unos minutos)…',
+                           'Setting up the Steam runtime for the first time (≈300 MB, may take a few minutes)…'),
     'run.firstproton':    ('Preparando Proton por primera vez (descarga ≈1,5 GB, puede tardar varios minutos)…',
                            'Setting up Proton for the first time (≈1.5 GB download, may take several minutes)…'),
     'run.nogame':         ('El juego no llegó a abrirse. Mira Logs/launcher-linux.log y Logs/proton.log.',
@@ -208,6 +215,43 @@ def find_game_dir():
             if os.path.isfile(os.path.join(d, P.EXE_NAME)):
                 return d
     return None
+
+
+def find_protons():
+    """Proton ya instalados (carpetas con 'proton' y 'toolmanifest.vdf'): Steam (tambien Flatpak y otras bibliotecas),
+    compatibilitytools.d (GE-Proton, proton-cachyos...), Lutris y Heroic. Lista de (nombre, ruta), la mejor primero."""
+    import glob
+    import re
+    h = os.path.expanduser('~')
+    steams = [h + '/.steam/root', h + '/.steam/steam', h + '/.local/share/Steam',
+              h + '/.var/app/com.valvesoftware.Steam/data/Steam', h + '/.var/app/com.valvesoftware.Steam/.local/share/Steam']
+    pats = [st + '/compatibilitytools.d/*' for st in steams]
+    pats += ['/usr/share/steam/compatibilitytools.d/*', '/usr/local/share/steam/compatibilitytools.d/*',
+             h + '/.local/share/lutris/runners/proton/*', h + '/.config/heroic/tools/proton/*',
+             h + '/.var/app/com.heroicgameslauncher.hgl/config/heroic/tools/proton/*']
+    libs = set(steams)
+    for st in steams:   # otras bibliotecas de Steam (otros discos)
+        try:
+            with open(st + '/steamapps/libraryfolders.vdf', encoding='utf-8', errors='replace') as f:
+                libs.update(re.findall(r'"path"\s+"([^"]+)"', f.read()))
+        except OSError:
+            pass
+    pats += [lib + '/steamapps/common/Proton*' for lib in libs]
+    seen, found = set(), []
+    for pat in pats:
+        for d in glob.glob(pat):
+            real = os.path.realpath(d)
+            if real in seen or not (os.path.isfile(os.path.join(d, 'proton')) and os.path.isfile(os.path.join(d, 'toolmanifest.vdf'))):
+                continue
+            seen.add(real)
+            found.append((os.path.basename(d.rstrip('/')), d))
+
+    def rank(item):
+        name = item[0].lower()
+        nums = tuple(int(x) for x in re.findall(r'\d+', name))
+        kind = 0 if name.startswith('ge-proton') else 1 if 'cachyos' in name else 2 if 'experimental' in name else 3
+        return (kind, tuple(-n for n in nums))
+    return sorted(found, key=rank)
 
 
 def umu_path():
@@ -451,8 +495,17 @@ class App:
             r.configure(bg=bg, fg=BODY, selectcolor='#2A1D14', activebackground=bg, activeforeground='#FFF7D5',
                         font=self.f['small'], anchor='w', highlightthickness=0, bd=0)
             r.pack(fill='x')
-        self.s_proton_hint = tk.Label(fr, bg=bg, fg=DIM, font=self.f['small'], anchor='w', justify='left', wraplength=425)
-        self.s_proton_hint.pack(fill='x', pady=(0, 8))
+        prow = tk.Frame(fr, bg=bg); prow.pack(fill='x', padx=(20, 0), pady=(2, 0))
+        self.s_protonver = tk.Label(prow, bg=bg, fg=DIM, font=self.f['small']); self.s_protonver.pack(side='left')
+        self.protons = find_protons()
+        self.proton_var = tk.StringVar()
+        self.proton_menu = tk.OptionMenu(prow, self.proton_var, '')
+        self.proton_menu.configure(bg='#2A1D14', fg=BODY, activebackground='#3A2A1A', activeforeground='#FFF7D5', relief='flat',
+                                   bd=0, highlightthickness=1, highlightbackground='#6B5232', font=self.f['small'], width=30, anchor='w')
+        self.proton_menu['menu'].configure(bg='#2A1D14', fg=BODY, activebackground='#3A2A1A', activeforeground='#FFF7D5', font=self.f['small'])
+        self.proton_menu.pack(side='left', padx=(6, 0))
+        self.s_proton_hint = tk.Label(fr, bg=bg, fg=DIM, font=self.f['small'], anchor='w', justify='left', wraplength=405)
+        self.s_proton_hint.pack(fill='x', padx=(20, 0), pady=(2, 8))
         self.b_menu = self.button(fr, self.add_to_menu); self.b_menu.pack(anchor='w')
         return fr
 
@@ -477,7 +530,8 @@ class App:
         self.s_runner_lbl.configure(text=L('set.runner'))
         self.r_proton.configure(text=L('set.proton'))
         self.r_wine.configure(text=L('set.wine'))
-        self.s_proton_hint.configure(text=L('set.protonhint'))
+        self.s_protonver.configure(text=L('set.protonver'))
+        self.fill_proton_menu()
         self.b_log.configure(text=L('set.log'))
         self.b_cache.configure(text=L('set.cachebtn'))
         self.b_menu.configure(text=L('set.menu'))
@@ -729,6 +783,39 @@ class App:
         if os.path.isfile(log):
             subprocess.Popen(['xdg-open', log], env=clean_env(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+    def proton_choice(self):
+        """'auto' (el mejor instalado; si no hay, descargar), 'download' (ultimo GE-Proton) o la ruta de uno instalado."""
+        return self.settings.get('proton') or 'auto'
+
+    def proton_path(self):
+        """Valor de PROTONPATH para umu: ruta de un Proton instalado o 'GE-Proton' (descarga el ultimo)."""
+        ch = self.proton_choice()
+        if ch == 'download':
+            return 'GE-Proton'
+        if ch != 'auto' and os.path.isfile(os.path.join(ch, 'proton')):
+            return ch
+        return self.protons[0][1] if self.protons else 'GE-Proton'
+
+    def fill_proton_menu(self):
+        opts = [('auto', L('set.protonauto') + (f' ({self.protons[0][0]})' if self.protons else ''))]
+        opts += [(path, name) for name, path in self.protons]
+        opts.append(('download', L('set.protondl')))
+        ch = self.proton_choice()
+        if ch not in [k for k, _ in opts]:
+            ch = 'auto'
+        menu = self.proton_menu['menu']
+        menu.delete(0, 'end')
+        for key, label in opts:
+            menu.add_command(label=label, command=lambda k=key, l=label: self.set_proton(k, l))
+        self.proton_var.set(dict(opts)[ch])
+        pp = self.proton_path()
+        self.s_proton_hint.configure(text=L('set.protonhint') if pp == 'GE-Proton' else L('set.protonhave', os.path.basename(pp)))
+
+    def set_proton(self, key, label):
+        self.settings['proton'] = key
+        save_settings(self.settings)
+        self.fill_proton_menu()
+
     def runner_changed(self):
         self.settings['runner'] = self.runner.get()
         save_settings(self.settings)
@@ -800,7 +887,7 @@ class App:
             cmd = [sys.executable, umu, exe]
             env.setdefault('WINEPREFIX', os.path.join(DATA_DIR, 'prefix'))
             env.setdefault('GAMEID', 'umu-default')
-            env.setdefault('PROTONPATH', self.settings.get('proton', 'GE-Proton'))
+            env.setdefault('PROTONPATH', self.proton_path())
             os.makedirs(env['WINEPREFIX'], exist_ok=True)
         cmd += ['-config', P.CONFIG_NAME]
         self.settings['game_dir'] = self.game_dir
@@ -833,11 +920,13 @@ class App:
                 q.put(('step', 'run.nomem', RED))
         P.say = say
         try:
-            P.say('----- inicio (AppImage %s): %s' % (APP_VERSION, ' '.join(cmd)), 'dim')
+            P.say('----- inicio (AppImage %s): %s%s' % (APP_VERSION, ' '.join(cmd),
+                                                      ' | PROTONPATH=' + env['PROTONPATH'] if 'PROTONPATH' in env else ''), 'dim')
             P.ensure_config(gd)
             import glob
             first = 'umu' in ' '.join(cmd[:2]) and not glob.glob(os.path.expanduser('~/.local/share/umu/steamrt*/*_platform_*'))
-            q.put(('step', 'run.firstproton' if first else 'run.opening', TEXT))
+            own = env.get('PROTONPATH', '').startswith('/')
+            q.put(('step', ('run.firstruntime' if own else 'run.firstproton') if first else 'run.opening', TEXT))
             with open(os.path.join(gd, 'Logs', 'proton.log'), 'ab') as plog:
                 child = subprocess.Popen(cmd, env=env, stdout=plog, stderr=subprocess.STDOUT, cwd=gd)
             pid, exited_at = None, None
