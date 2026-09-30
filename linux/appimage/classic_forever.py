@@ -29,7 +29,7 @@ import tkinter as tk
 import tkinter.font as tkfont
 from tkinter import filedialog, messagebox
 
-APP_VERSION = '1.3.0'   # igual que App.Version del launcher de Windows (build.sh lo comprueba)
+APP_VERSION = '1.2.1'   # igual que App.Version del launcher de Windows (build.sh lo comprueba)
 RELEASES_URL = 'https://github.com/defexnicolas/wow-classic-launcher/releases/latest'
 FEED_URL = 'https://raw.githubusercontent.com/defexnicolas/wow-classic-launcher/status/status.json'
 LOGIN_PORT, WORLD_PORT = 1119, 8085

@@ -28,7 +28,7 @@ namespace ForeverLauncher
 {
     public static class App
     {
-        public const string Version = "1.3.0";
+        public const string Version = "1.2.1";
         public const string ReleasesUrl = "https://github.com/defexnicolas/wow-classic-launcher/releases/latest";
 
         [STAThread]
