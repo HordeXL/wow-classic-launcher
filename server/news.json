@@ -5,6 +5,13 @@
   "news": [
     {
       "date": "2026-09-30",
+      "title": "Launcher 1.2.1",
+      "text": "Versión para Linux (AppImage, sin Steam), botón de Discord y el panel de bots de mazmorra (ClassicForever_Bots) se instala y actualiza solo.",
+      "title_en": "Launcher 1.2.1",
+      "text_en": "Linux version (AppImage, no Steam needed), Discord button, and the dungeon bots panel (ClassicForever_Bots) installs and updates itself."
+    },
+    {
+      "date": "2026-09-30",
       "title": "Launcher 1.2.0",
       "text": "Diseño nuevo de Zemog, pestañas de Notas del parche y Opciones, y botón para borrar la caché del juego.",
       "title_en": "Launcher 1.2.0",
@@ -33,7 +40,7 @@
     }
   ],
   "launcher": {
-    "version": "1.2.0",
+    "version": "1.2.1",
     "url": "https://github.com/defexnicolas/wow-classic-launcher/releases/latest"
   },
   "clientBuilds": [
