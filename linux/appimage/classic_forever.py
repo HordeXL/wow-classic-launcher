@@ -520,8 +520,9 @@ class App:
         c.pack()
         c.create_image(OX, OY, image=self.img['panel'], anchor='nw')
         c.create_image(394 + 86, 2 + 80, image=self.img['logo'])
-        # Discord: en el hueco de la barra superior a la derecha del logo (lo muestra status.json "discord")
-        self.discord = c.create_image(OX + 618, OY + 61, image=self.img['discord'], state='hidden')
+        # Discord: la caja de encima de JUGAR (lo muestra status.json "discord"); los enlaces van debajo
+        self.discord = c.create_image(OX + 797, OY + 360, image=self.img['discord'], state='hidden')
+        self.discord_label = c.create_text(OX + 797, OY + 410, text='', font=self.f['h'], fill=GOLD, state='hidden')
         self.clickable(self.discord, lambda e: self.status and self.status.discord and webbrowser.open(self.status.discord))
         def hover(on):
             if on:
@@ -567,6 +568,7 @@ class App:
         self.world_dot = c.create_oval(OX + 785, OY + 214, OX + 791, OY + 220, fill='#555', outline='')
         self.world_lbl = c.create_text(OX + 796, OY + 217, text='', font=self.f['small'], fill=DIM, anchor='w')
         self.ping_text = c.create_text(OX + 720, OY + 236, text='', font=self.f['small'], fill=DIM, anchor='w')
+        self.message_text = c.create_text(OX + 700, OY + 250, text='', font=self.f['small'], fill=GOLD, anchor='nw', width=190)
         # derecha abajo: aviso, launcher nuevo y enlaces (se recolocan en render_right)
         self.right_items = []
         # barra inferior
@@ -755,11 +757,13 @@ class App:
             col, key = RED, 'status.offline'
         c.itemconfigure(self.dot, fill=col)
         c.itemconfigure(self.discord, state='normal' if s.discord else 'hidden')
+        c.itemconfigure(self.discord_label, text=L('ui.discord'), state='normal' if s.discord else 'hidden')
         c.itemconfigure(self.status_text, text=L(key))
         c.itemconfigure(self.detail_text, text=L('status.noresponse') if not s.login_up and not s.world_up else '')
         c.itemconfigure(self.login_dot, fill=GREEN if s.login_up else RED)
         c.itemconfigure(self.world_dot, fill=GREEN if s.world_up else RED)
         c.itemconfigure(self.ping_text, text=L('ui.ping', s.login_ms) if s.login_ms >= 0 else '')
+        c.itemconfigure(self.message_text, text=(tr(s.root, 'message') or '') if s.feed_ok else '')
         # coloca login/mundo/latencia debajo del texto de estado (que puede ocupar dos lineas)
         y = (c.bbox(self.status_text)[3] if c.bbox(self.status_text) else OY + 180) + 4
         if c.itemcget(self.detail_text, 'text'):
@@ -770,6 +774,7 @@ class App:
         c.coords(self.login_lbl, OX + 731, y + 8)
         c.coords(self.world_lbl, OX + 796, y + 8)
         c.coords(self.ping_text, OX + 720, y + 28)
+        c.coords(self.message_text, OX + 700, y + 44)   # aviso del servidor: en la caja de estado, bajo la latencia
         self.render_right()
 
     def render_right(self):
@@ -779,7 +784,7 @@ class App:
         self.right_items = []
         if s is None:
             return
-        x, y, w = OX + 700, OY + 318, 192
+        x, y, w = OX + 700, (OY + 426) if s.discord else (OY + 318), 192
 
         def text(t, font, fill, **kw):
             nonlocal y
@@ -788,17 +793,14 @@ class App:
             y = c.bbox(it)[3] + 6
             return it
 
-        msg = tr(s.root, 'message') if s.feed_ok else ''
-        if msg:
-            text(msg, self.f['body'], GOLD)
-            y += 4
         if newer(s.latest, APP_VERSION) and not self.must_update:
             text(L('ui.update', s.latest), self.f['small'], TEXT)
             it = text(L('ui.download'), self.f['h'], GOLD)
             self.clickable(it, lambda e: webbrowser.open(s.launcher_url))
             y += 4
-        if s.links and y < OY + 440:
-            text(L('ui.links'), self.f['h'], GOLD)
+        if s.links and y < OY + 450:
+            if not s.discord:
+                text(L('ui.links'), self.f['h'], GOLD)
             for l in s.links:
                 if y > OY + 450:
                     break

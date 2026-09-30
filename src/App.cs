@@ -224,6 +224,7 @@ namespace ForeverLauncher
             Find<Button>("MinButton").ToolTip = L.Get("ui.minimize");
             Find<Button>("CloseButton").ToolTip = L.Get("ui.close");
             Find<Button>("DiscordButton").ToolTip = L.Get("ui.discord");
+            Find<TextBlock>("DiscordLabel").Text = L.Get("ui.discord");
             logButton.Content = L.Get("ui.viewlog");
             cacheButton.Content = L.Get("set.cachebtn");
             updateLink.Content = L.Get("ui.download");
@@ -377,7 +378,13 @@ namespace ForeverLauncher
             messageText.Visibility = string.IsNullOrWhiteSpace(message) ? Visibility.Collapsed : Visibility.Visible;
 
             if (s.FeedOk) FillLinks(s);
-            Find<Button>("DiscordButton").Visibility = s.DiscordUrl != null ? Visibility.Visible : Visibility.Collapsed;
+            // con Discord, el emblema ocupa la parte de arriba de la caja y los enlaces van debajo
+            var discordVis = s.DiscordUrl != null ? Visibility.Visible : Visibility.Collapsed;
+            Find<Button>("DiscordButton").Visibility = discordVis;
+            Find<TextBlock>("DiscordLabel").Visibility = discordVis;
+            var rb = Find<ScrollViewer>("RightBottom");
+            Canvas.SetTop(rb, s.DiscordUrl != null ? 424 : 316);
+            rb.Height = s.DiscordUrl != null ? 40 : 146;
 
             if (!string.IsNullOrEmpty(s.LauncherUrl)) updateUrl = s.LauncherUrl;
             bool newer = StatusClient.IsNewer(s.LatestLauncher, App.Version);
@@ -450,7 +457,7 @@ namespace ForeverLauncher
                 b.Click += (o, e) => OpenUrl(url);
                 linksPanel.Children.Add(b);
             }
-            Find<TextBlock>("LinksHeader").Visibility = linksPanel.Children.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+            Find<TextBlock>("LinksHeader").Visibility = linksPanel.Children.Count > 0 && s.DiscordUrl == null ? Visibility.Visible : Visibility.Collapsed;
         }
 
         static void OpenUrl(string url)

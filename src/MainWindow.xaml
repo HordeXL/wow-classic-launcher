@@ -172,10 +172,6 @@
     <Canvas x:Name="Frame" Width="946" Height="665" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="7,50,0,0">
       <Image x:Name="BgImage" Width="946" Height="665" Stretch="Fill"/>
 
-      <!-- Discord: en el hueco de la barra superior a la derecha del logo (lo muestra status.json "discord") -->
-      <Button x:Name="DiscordButton" Style="{StaticResource ImageButton}" Canvas.Left="576" Canvas.Top="30" Width="84" Height="62" Visibility="Collapsed">
-        <Image x:Name="DiscordImg" Stretch="Uniform"/>
-      </Button>
 
       <!-- Menú lateral -->
       <StackPanel Canvas.Left="35" Canvas.Top="138" Width="151">
@@ -280,12 +276,20 @@
           <TextBlock x:Name="WorldLabel" Text=" " Margin="5,0,0,0" FontSize="11.5" Foreground="{StaticResource Dim}"/>
         </StackPanel>
         <TextBlock x:Name="PingText" Text="" FontSize="11.5" Foreground="{StaticResource Dim}" Margin="23,6,0,0"/>
+        <TextBlock x:Name="MessageText" Visibility="Collapsed" FontSize="12" TextWrapping="Wrap" MaxHeight="48" TextTrimming="CharacterEllipsis"
+                   Foreground="{StaticResource Gold}" Margin="0,10,0,0" Effect="{StaticResource TextShadow}"/>
       </StackPanel>
 
       <!-- Derecha abajo: aviso del servidor, launcher nuevo y enlaces -->
-      <ScrollViewer Canvas.Left="700" Canvas.Top="316" Width="195" Height="146" VerticalScrollBarVisibility="Hidden">
+      <!-- Discord: la caja de encima de JUGAR (lo muestra status.json "discord") -->
+      <Button x:Name="DiscordButton" Style="{StaticResource ImageButton}" Canvas.Left="741" Canvas.Top="318" Width="112" Height="83" Visibility="Collapsed">
+        <Image x:Name="DiscordImg" Stretch="Uniform"/>
+      </Button>
+      <TextBlock x:Name="DiscordLabel" Canvas.Left="700" Canvas.Top="402" Width="195" TextAlignment="Center" Text=" " Visibility="Collapsed"
+                 Style="{StaticResource BoxHeader}" FontSize="11.5" IsHitTestVisible="False"/>
+
+      <ScrollViewer x:Name="RightBottom" Canvas.Left="700" Canvas.Top="316" Width="195" Height="146" VerticalScrollBarVisibility="Hidden">
         <StackPanel>
-          <TextBlock x:Name="MessageText" Visibility="Collapsed" FontSize="12.5" TextWrapping="Wrap" Foreground="{StaticResource Gold}" Margin="0,0,0,10" Effect="{StaticResource TextShadow}"/>
           <Border x:Name="UpdateBanner" Visibility="Collapsed" CornerRadius="4" Padding="9,6" Margin="0,0,0,10" Background="#AA3A2A08" BorderBrush="#88E8C46A" BorderThickness="1">
             <StackPanel>
               <TextBlock x:Name="UpdateText" Text=" " FontSize="12" TextWrapping="Wrap"/>

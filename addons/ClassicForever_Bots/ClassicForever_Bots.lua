@@ -50,16 +50,24 @@ local function SelectedDungeon()
     return FindDungeon(db.dungeon)
 end
 
-local function Send(args)
+-- El servidor admite ordenes (start, stop... y watch) desde el parche dbot-orders. Sin el, contesta "You already have
+-- dungeon bots" o "Unknown dungeon preset 'start'": nil = sin saber, true / false segun la primera respuesta.
+local serverOrders
+local pendingOrder = false
+
+local function Send(args, isOrder)
     pendingUntil = GetTime() + 3
+    pendingOrder = isOrder and true or false
     SendChatMessage(".dungeonbots " .. args, "SAY")
 end
 
 -- estado en vivo: se pide una vez por conexion (el servidor lo manda hasta que desconectas)
 local function WatchOn()
+    if serverOrders == false then return end
+    if not IsInInstance() then return end   -- fuera de una instancia /say solo vale desde un clic; se pide al entrar
     if not watchSent then
         watchSent = true
-        Send("watch on")
+        Send("watch on", true)
     end
 end
 
@@ -240,7 +248,7 @@ local function FillGroup(key, role)
     role = role or (db.role ~= "auto" and db.role) or nil
     Send(k .. (role and (" " .. role) or ""))
 end
-fillBtn:SetScript("OnClick", function() FillGroup(); WatchOn() end)
+fillBtn:SetScript("OnClick", function() FillGroup() end)
 
 -- ------------------------------------------------------------------------------------------------ ordenes
 Line(Main, -196)
@@ -252,9 +260,12 @@ local function Order(key)
         Print(L.NotInGroupLead)
         return
     end
+    if serverOrders == false then
+        Print(L.NoOrders)
+        return
+    end
     if STATE_ORDERS[key] then lastOrder = STATE_ORDERS[key] end
-    Send(key)
-    WatchOn()
+    Send(key, true)
     Refresh()
 end
 
@@ -386,7 +397,7 @@ reply:SetTextColor(0.84, 0.80, 0.71)
 
 local statusBtn = Button(Main, 128, 24)
 statusBtn:SetPoint("BOTTOMLEFT", 18, 16)
-statusBtn:SetScript("OnClick", function() Send("status"); WatchOn() end)
+statusBtn:SetScript("OnClick", function() Send("status") end)
 Tip(statusBtn, "TipStatus")
 
 local dismissBtn = Button(Main, 128, 24)
@@ -394,10 +405,10 @@ dismissBtn:SetPoint("BOTTOMRIGHT", -18, 16)
 dismissBtn:SetScript("OnClick", function() StaticPopup_Show("CFBOTS_DISMISS") end)
 Tip(dismissBtn, "TipDismiss")
 
+-- el texto se pone en Refresh (el marco del dialogo cambia de nombre entre clientes: text / Text)
 StaticPopupDialogs["CFBOTS_DISMISS"] = {
     text = "", button1 = ACCEPT, button2 = CANCEL,
-    OnShow = function(self) self.text:SetText(L.WarningDismiss) end,
-    OnAccept = function() lastOrder = nil; Send("dismiss"); WatchOn(); Refresh() end,
+    OnAccept = function() lastOrder = nil; Send("dismiss"); Refresh() end,
     timeout = 0, whileDead = true, hideOnEscape = true, preferredIndex = 3,
 }
 
@@ -535,7 +546,9 @@ Refresh = function()
     fillBtn:SetText(L.FillGroup)
     fillBtn:SetEnabled(d ~= nil)
     hOrders:SetText(L.Orders)
+    StaticPopupDialogs["CFBOTS_DISMISS"].text = L.WarningDismiss
     for key, b in pairs(orderButtons) do
+        b:SetEnabled(serverOrders ~= false)
         b:SetText(L[ORDER_KEYS[key]])
         b.tipTitle = L[ORDER_KEYS[key]]
         if lastOrder and STATE_BUTTON[lastOrder] == key then b:LockHighlight() else b:UnlockHighlight() end
@@ -590,12 +603,25 @@ ev:SetScript("OnEvent", function(_, event, arg1)
         end
         Refresh()
     elseif event == "CHAT_MSG_SYSTEM" and arg1 and arg1:find("^%[CFB%]") then
+        if serverOrders ~= true then serverOrders = true; Refresh() end
         if ParseLive(arg1) then RenderLive() end
     elseif event == "CHAT_MSG_SYSTEM" then
         -- respuesta del servidor a lo que acabamos de mandar (las ordenes empiezan por "Bots:")
         if GetTime() < pendingUntil or (arg1 and arg1:find("^Bots:")) then
-            reply:SetText(arg1)
+            if pendingOrder and arg1 and (arg1:find("already have dungeon bots") or arg1:find("Unknown dungeon preset")) then
+                -- servidor sin ordenes: se desactivan los botones y no se vuelve a pedir el estado en vivo
+                serverOrders = false
+                reply:SetText(L.NoOrders)
+                Refresh()
+            elseif pendingOrder and arg1 and arg1:find("^Bots:") then
+                serverOrders = true
+                reply:SetText(arg1)
+                C_Timer.After(1, WatchOn)   -- servidor con ordenes: ya se puede pedir el estado en vivo (aparte, sin mezclar respuestas)
+            else
+                reply:SetText(arg1)
+            end
             pendingUntil = 0
+            pendingOrder = false
         end
     end
 end)
