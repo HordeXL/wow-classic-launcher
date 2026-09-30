@@ -4,8 +4,8 @@
 ## Notes-esES: Panel para los bots de mazmorra del servidor Classic Forever (.dungeonbots): llenar el grupo y darles órdenes.
 ## Notes-enUS: Dungeon bots panel for the Classic Forever server (.dungeonbots): fill your group and give orders.
 ## Author: DefexNicolas
-## Version: 1.3.1
-## IconTexture: Interface\AddOns\ClassicForever_Bots\Media\minimap
+## Version: 1.3.2
+## IconTexture: Interface\AddOns\ClassicForever_Bots\Media\minimap.png
 ## SavedVariablesPerCharacter: CFBotsConfig
 
 Locales.lua
