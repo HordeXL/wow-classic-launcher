@@ -4,6 +4,13 @@
   "message": "",
   "news": [
     {
+      "date": "2026-09-30",
+      "title": "Launcher 1.2.0",
+      "text": "Diseño nuevo de Zemog, pestañas de Notas del parche y Opciones, y botón para borrar la caché del juego.",
+      "title_en": "Launcher 1.2.0",
+      "text_en": "New design by Zemog, Patch Notes and Settings tabs, and a button to clear the game cache."
+    },
+    {
       "date": "2026-09-24",
       "title": "Nuevo launcher",
       "text": "Adiós al .bat: el launcher abre el juego, pone la clave del servidor y te avisa cuando esté listo. Puedes cerrarlo a la bandeja mientras juegas.",
@@ -26,7 +33,7 @@
     }
   ],
   "launcher": {
-    "version": "1.1.2",
+    "version": "1.2.0",
     "url": "https://github.com/defexnicolas/wow-classic-launcher/releases/latest"
   },
   "clientBuilds": [
