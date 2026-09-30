@@ -172,6 +172,11 @@
     <Canvas x:Name="Frame" Width="946" Height="665" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="7,50,0,0">
       <Image x:Name="BgImage" Width="946" Height="665" Stretch="Fill"/>
 
+      <!-- Discord: en el hueco de la barra superior a la derecha del logo (lo muestra status.json "discord") -->
+      <Button x:Name="DiscordButton" Style="{StaticResource ImageButton}" Canvas.Left="576" Canvas.Top="30" Width="84" Height="62" Visibility="Collapsed">
+        <Image x:Name="DiscordImg" Stretch="Uniform"/>
+      </Button>
+
       <!-- Menú lateral -->
       <StackPanel Canvas.Left="35" Canvas.Top="138" Width="151">
         <Button x:Name="BtnNewsNav" Style="{StaticResource ImageButton}" Margin="0,0,0,16">
@@ -199,7 +204,34 @@
         <TextBlock x:Name="NewsHeader" DockPanel.Dock="Top" Text=" " FontSize="14" Style="{StaticResource BoxHeader}" Margin="0,0,0,12"/>
         <ScrollViewer VerticalScrollBarVisibility="Auto">
           <ScrollViewer.Resources>
-            <Style TargetType="ScrollBar"><Setter Property="Width" Value="6"/><Setter Property="MinWidth" Value="6"/><Setter Property="Opacity" Value="0.5"/></Style>
+            <!-- barra fina dorada (la gris de Windows desentonaba con el cuero) -->
+            <Style TargetType="ScrollBar">
+              <Setter Property="Width" Value="6"/>
+              <Setter Property="MinWidth" Value="6"/>
+              <Setter Property="Template">
+                <Setter.Value>
+                  <ControlTemplate TargetType="ScrollBar">
+                    <Grid>
+                      <Border CornerRadius="3" Background="#40000000"/>
+                      <Track x:Name="PART_Track" IsDirectionReversed="True">
+                        <Track.Thumb>
+                          <Thumb Cursor="Hand">
+                            <Thumb.Template>
+                              <ControlTemplate TargetType="Thumb">
+                                <Border x:Name="T" CornerRadius="3" Background="#99E8C46A"/>
+                                <ControlTemplate.Triggers>
+                                  <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="T" Property="Background" Value="#E8C46A"/></Trigger>
+                                </ControlTemplate.Triggers>
+                              </ControlTemplate>
+                            </Thumb.Template>
+                          </Thumb>
+                        </Track.Thumb>
+                      </Track>
+                    </Grid>
+                  </ControlTemplate>
+                </Setter.Value>
+              </Setter>
+            </Style>
           </ScrollViewer.Resources>
           <StackPanel x:Name="NewsList" Margin="0,0,8,0">
             <TextBlock x:Name="NewsPlaceholder" Text=" " Foreground="{StaticResource Dim}" FontSize="13"/>

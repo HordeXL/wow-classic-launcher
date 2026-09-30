@@ -33,7 +33,8 @@ namespace ForeverLauncher
         public long LoginMs = -1;
         public bool FeedOk, FeedFresh, FeedLoginUp, FeedWorldUp, Maintenance;
         public FeedEntry Root = new FeedEntry(null);   // "message" / "message_en"
-        public string LatestLauncher, LauncherUrl, MinLauncher;   // MinLauncher: por debajo, el boton JUGAR pasa a ACTUALIZAR
+        public string LatestLauncher, LauncherUrl, MinLauncher;
+        public string DiscordUrl;   // invitacion al Discord del servidor (boton de la barra superior)   // MinLauncher: por debajo, el boton JUGAR pasa a ACTUALIZAR
         public List<FeedEntry> News = new List<FeedEntry>();
         public List<FeedEntry> PatchNotes = new List<FeedEntry>();   // mismo formato que News
         public List<FeedEntry> Links = new List<FeedEntry>();
@@ -103,6 +104,9 @@ namespace ForeverLauncher
                 }
                 s.Maintenance = Bool(root, "maintenance");
                 s.Root = new FeedEntry(root);
+                string discord = Str(root, "discord");
+                if (discord != null && System.Text.RegularExpressions.Regex.IsMatch(discord, @"^https://(discord\.gg|discord\.com/invite)/[A-Za-z0-9-]{2,32}$"))
+                    s.DiscordUrl = discord;
 
                 var launcher = root.ContainsKey("launcher") ? root["launcher"] as Dictionary<string, object> : null;
                 if (launcher != null) { s.LatestLauncher = Str(launcher, "version"); s.LauncherUrl = Str(launcher, "url"); s.MinLauncher = Str(launcher, "min"); }

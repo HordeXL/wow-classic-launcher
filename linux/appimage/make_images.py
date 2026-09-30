@@ -30,3 +30,4 @@ for n in ('play_es', 'play_en', 'update'):
     fit(n + '.png', (262, 136))
     fit(n + '.png', (262, 136), n + '_off.png', 0.45)
 fit('logo.png', (256, 256), 'icon.png')
+fit('discord.png', (84, 62))

@@ -50,6 +50,7 @@ def build_status(a):
         "maintenance": bool(extra.get("maintenance", False)),
         "message": extra.get("message", ""),
         "message_en": extra.get("message_en", ""),
+        "discord": extra.get("discord", ""),
         "news": extra.get("news", []),
         "patchNotes": extra.get("patchNotes", []),
         "links": extra.get("links", []),

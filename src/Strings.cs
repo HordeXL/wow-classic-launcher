@@ -50,6 +50,7 @@ namespace ForeverLauncher
             { "ui.realm",        new[] { "ESTADO DEL REINO", "REALM STATUS" } },
             { "ui.links",        new[] { "ENLACES", "LINKS" } },
             { "ui.ping",         new[] { "Latencia al login: {0} ms", "Login latency: {0} ms" } },
+            { "ui.discord",      new[] { "Únete a nuestro Discord", "Join our Discord" } },
             { "ui.minimize",     new[] { "Minimizar", "Minimize" } },
             { "ui.close",        new[] { "Cerrar", "Close" } },
             { "ui.updatebtn",    new[] { "ACTUALIZAR", "UPDATE" } },

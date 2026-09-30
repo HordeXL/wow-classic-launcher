@@ -140,6 +140,8 @@ namespace ForeverLauncher
             Find<Image>("NewsImg").Source = Img("nav_news.png");
             Find<Image>("PatchImg").Source = Img("nav_patch.png");
             Find<Image>("SettingsImg").Source = Img("nav_settings.png");
+            Find<Image>("DiscordImg").Source = Img("discord.png");
+            Find<Button>("DiscordButton").Click += (s, e) => { if (lastStatus != null) OpenUrl(lastStatus.DiscordUrl); };
 
             langEs.Click += (s, e) => SetLanguage("es");
             langEn.Click += (s, e) => SetLanguage("en");
@@ -221,6 +223,7 @@ namespace ForeverLauncher
             PaintAddons();
             Find<Button>("MinButton").ToolTip = L.Get("ui.minimize");
             Find<Button>("CloseButton").ToolTip = L.Get("ui.close");
+            Find<Button>("DiscordButton").ToolTip = L.Get("ui.discord");
             logButton.Content = L.Get("ui.viewlog");
             cacheButton.Content = L.Get("set.cachebtn");
             updateLink.Content = L.Get("ui.download");
@@ -308,6 +311,7 @@ namespace ForeverLauncher
                 s.FeedOk = true; s.Root = lastStatus.Root; s.News = lastStatus.News; s.Links = lastStatus.Links;
                 s.PatchNotes = lastStatus.PatchNotes;
                 s.LatestLauncher = lastStatus.LatestLauncher; s.LauncherUrl = lastStatus.LauncherUrl; s.MinLauncher = lastStatus.MinLauncher;
+                s.DiscordUrl = lastStatus.DiscordUrl; s.Addons = lastStatus.Addons;
                 lastStatus = s;
             }
             RenderStatus(s);
@@ -373,6 +377,7 @@ namespace ForeverLauncher
             messageText.Visibility = string.IsNullOrWhiteSpace(message) ? Visibility.Collapsed : Visibility.Visible;
 
             if (s.FeedOk) FillLinks(s);
+            Find<Button>("DiscordButton").Visibility = s.DiscordUrl != null ? Visibility.Visible : Visibility.Collapsed;
 
             if (!string.IsNullOrEmpty(s.LauncherUrl)) updateUrl = s.LauncherUrl;
             bool newer = StatusClient.IsNewer(s.LatestLauncher, App.Version);

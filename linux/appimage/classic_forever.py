@@ -14,6 +14,7 @@ import json
 import mmap
 import os
 import queue
+import re
 import shutil
 import socket
 import ssl
@@ -67,6 +68,7 @@ T = {
     'status.maintenance': ('MANTENIMIENTO', 'MAINTENANCE'),
     'status.offline':     ('FUERA DE LÍNEA', 'OFFLINE'),
     'status.noresponse':  ('El servidor no responde.', 'The server is not responding.'),
+    'ui.discord':         ('Únete a nuestro Discord', 'Join our Discord'),
     'ui.subtitle':        ('Servidor para el cliente beta 1.60.1 · Linux', 'Server for the 1.60.1 beta client · Linux'),
     'ui.news':            ('NOVEDADES', 'NEWS'),
     'ui.patchnotes':      ('NOTAS DEL PARCHE', 'PATCH NOTES'),
@@ -397,7 +399,7 @@ class Status:
         self.feed_ok = self.feed_fresh = self.feed_login = self.maintenance = False
         self.root = {}
         self.news, self.patch_notes, self.links, self.client_builds, self.addons = [], [], [], [], []
-        self.latest = self.min = None
+        self.latest = self.min = self.discord = None
         self.launcher_url = RELEASES_URL
 
 
@@ -437,9 +439,10 @@ def fetch_status():
             s.links = [l for l in root.get('links') or [] if isinstance(l, dict) and str(l.get('url', '')).startswith('https://')]
             lau = root.get('launcher') or {}
             s.latest, s.min = lau.get('version'), lau.get('min')
+            if re.match(r'^https://(discord\.gg|discord\.com/invite)/[A-Za-z0-9-]{2,32}$', str(root.get('discord', ''))):
+                s.discord = root['discord']
             if str(lau.get('url', '')).startswith('https://'):
                 s.launcher_url = lau['url']
-            import re
             s.client_builds = [v for v in root.get('clientBuilds') or [] if isinstance(v, str) and re.match(r'^1\.60\.\d+\.\d{5}$', v)]
             s.addons = [a for a in root.get('addons') or [] if addon_valid(a)]
     except Exception:
@@ -517,6 +520,17 @@ class App:
         c.pack()
         c.create_image(OX, OY, image=self.img['panel'], anchor='nw')
         c.create_image(394 + 86, 2 + 80, image=self.img['logo'])
+        # Discord: en el hueco de la barra superior a la derecha del logo (lo muestra status.json "discord")
+        self.discord = c.create_image(OX + 618, OY + 61, image=self.img['discord'], state='hidden')
+        self.clickable(self.discord, lambda e: self.status and self.status.discord and webbrowser.open(self.status.discord))
+        def hover(on):
+            if on:
+                self._before_discord = self.step_msg
+                self.step('ui.discord', color=GOLD)
+            elif getattr(self, '_before_discord', None):
+                self.step(self._before_discord[0], *self._before_discord[1], color=self._before_discord[2])
+        c.tag_bind(self.discord, '<Enter>', lambda e: hover(True), add='+')
+        c.tag_bind(self.discord, '<Leave>', lambda e: hover(False), add='+')
         # idioma
         self.lang_items = {}
         for i, code in enumerate(LANGS):
@@ -706,7 +720,7 @@ class App:
     def on_status(self, s):
         if not s.feed_ok and self.status and self.status.feed_ok:   # fallo puntual del status.json: se conserva lo anterior
             old = self.status
-            for k in ('feed_ok', 'root', 'news', 'patch_notes', 'links', 'latest', 'min', 'launcher_url', 'client_builds', 'addons'):
+            for k in ('feed_ok', 'root', 'news', 'patch_notes', 'links', 'latest', 'min', 'launcher_url', 'client_builds', 'addons', 'discord'):
                 setattr(s, k, getattr(old, k))
         self.status = s
         if s.client_builds:
@@ -740,6 +754,7 @@ class App:
         else:
             col, key = RED, 'status.offline'
         c.itemconfigure(self.dot, fill=col)
+        c.itemconfigure(self.discord, state='normal' if s.discord else 'hidden')
         c.itemconfigure(self.status_text, text=L(key))
         c.itemconfigure(self.detail_text, text=L('status.noresponse') if not s.login_up and not s.world_up else '')
         c.itemconfigure(self.login_dot, fill=GREEN if s.login_up else RED)
@@ -825,11 +840,27 @@ class App:
         f.configure(scrollregion=(0, 0, 433, max(y, 290)))
         f.yview_moveto(0)
         f.coords(self.feed_bg_item, 0, 0)
+        self.feed_height = max(y, 290)
+        self.paint_scrollbar()
+
+    def paint_scrollbar(self):
+        """Indicador dorado a la derecha de la lista cuando hay mas de lo que cabe (la rueda la desplaza)."""
+        f = self.feed
+        f.delete('sb')
+        total = getattr(self, 'feed_height', 290)
+        if total <= 290:
+            return
+        top = f.canvasy(0)
+        h = max(24, 290 * 290 / total)
+        y0 = top + (290 - h) * (top / (total - 290))
+        f.create_rectangle(427, top, 432, top + 290, fill='#241510', outline='', tags='sb')
+        f.create_rectangle(427, y0, 432, y0 + h, fill='#A88A4C', outline='', tags='sb')
 
     def on_wheel(self, e):
         d = -1 if (getattr(e, 'num', 0) == 4 or getattr(e, 'delta', 0) > 0) else 1
         self.feed.yview_scroll(d * 2, 'units')
         self.feed.coords(self.feed_bg_item, 0, self.feed.canvasy(0))   # el fondo no se desplaza
+        self.paint_scrollbar()
 
     # ------------------------------------------------------------------------------------------------ carpeta y opciones
     @staticmethod
