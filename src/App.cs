@@ -250,6 +250,7 @@ namespace ForeverLauncher
             tab = t;
             feedView.Visibility = t == Tab.Settings ? Visibility.Collapsed : Visibility.Visible;
             settingsView.Visibility = t == Tab.Settings ? Visibility.Visible : Visibility.Collapsed;
+            if (t == Tab.Settings) PaintAddons();
             RenderFeed();
             PaintNav();
         }
