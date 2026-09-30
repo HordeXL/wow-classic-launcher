@@ -4,7 +4,7 @@ Launcher para jugar en el servidor **Classic Forever** con el cliente beta **1.6
 Sustituye a `play-beta.bat` / `Jugar-Beta.bat`: hace lo mismo, pero con una ventana, el estado del servidor
 las novedades y las notas del parche. En **español e inglés** (selector ES | EN arriba a la derecha; la primera vez usa el idioma de Windows).
 
-El diseño de la ventana (marco, logo y botones, desde la 1.2.0) lo propuso un jugador de la comunidad.
+El diseño de la ventana (marco, logo y botones, desde la 1.2.0) es de **Zemog**, jugador de la comunidad.
 
 ![captura](docs/screenshot.png)
 

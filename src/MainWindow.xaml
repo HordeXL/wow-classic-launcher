@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Diseño 1.2.0: marco, logo, botones con imagen y menú lateral propuestos por un jugador de la comunidad.
+<!-- Diseño 1.2.0: marco, logo, botones con imagen y menú lateral propuestos por Zemog, jugador de la comunidad.
      El marco (img/panel.png) se pinta a escala 0.47 (946x665); las cajas del Canvas siguen sus huecos:
      menú 35..186, centro 201..670, derecha 684..907 (estado arriba 122..294, avisos abajo 301..472), barra 505..653. -->
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
