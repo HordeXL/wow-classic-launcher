@@ -10,10 +10,31 @@ permissions:
   contents: write
 
 jobs:
+  appimage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: AppImage de Linux (linux/appimage/build.sh)
+        run: |
+          linux/appimage/build.sh
+          cd dist && sha256sum ClassicForever-x86_64.AppImage > ClassicForever-x86_64.AppImage.sha256
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ClassicForever-AppImage
+          path: dist/ClassicForever-x86_64.AppImage*
+
   build:
+    needs: appimage
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ClassicForever-AppImage
+          path: dist
 
       - name: Compilar (csc de .NET Framework 4.8, el mismo que build.cmd)
         shell: cmd
@@ -30,7 +51,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: ClassicForever
-          path: dist/
+          path: dist/ClassicForever.exe*
 
       - name: Publicar release (solo tags v*)
         if: startsWith(github.ref, 'refs/tags/v')
@@ -43,6 +64,8 @@ jobs:
 
           **SHA-256:** ``$env:SHA256``
 
+          **Linux:** ``ClassicForever-x86_64.AppImage`` (dale permiso de ejecución y ábrela; SHA-256 en el ``.sha256``). El parcheador suelto para Steam sigue siendo ``classic-forever-linux.py``.
+
           Windows mostrará "Windows protegió su PC" porque el ejecutable no está firmado: pulsa **Más información → Ejecutar de todas formas**. Ver el README.
           "@
-          gh release create $env:GITHUB_REF_NAME dist/ClassicForever.exe dist/ClassicForever.exe.sha256 linux/classic-forever-linux.py --title "Classic Forever Launcher $env:GITHUB_REF_NAME" --notes $notes
+          gh release create $env:GITHUB_REF_NAME dist/ClassicForever.exe dist/ClassicForever.exe.sha256 dist/ClassicForever-x86_64.AppImage dist/ClassicForever-x86_64.AppImage.sha256 linux/classic-forever-linux.py --title "Classic Forever Launcher $env:GITHUB_REF_NAME" --notes $notes

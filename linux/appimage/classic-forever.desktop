@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Classic Forever
+Comment=Launcher del servidor Classic Forever (cliente beta 1.60.1)
+Exec=AppRun
+Icon=classic-forever
+Categories=Game;
+Terminal=false
+StartupWMClass=ClassicForever

@@ -29,10 +29,34 @@ Para que no tengas que fiarte de nosotros:
 - Puedes compilarlo tú: `build.cmd` usa el compilador de C# que ya trae Windows. No hace falta instalar nada.
 - Es .NET sin ofuscar: cualquier descompilador (ILSpy, dnSpy) muestra el mismo código que hay aquí.
 
-## Linux (Proton / Wine)
+## Linux
 
-El `.exe` es solo para Windows. En Linux usa [`linux/classic-forever-linux.py`](linux/classic-forever-linux.py)
-(Python 3, sin dependencias): hace lo mismo desde fuera del juego.
+**Lo más fácil: la AppImage.** Descarga `ClassicForever-x86_64.AppImage` de
+[Releases](https://github.com/defexnicolas/wow-classic-launcher/releases/latest), dale permiso de ejecución y ábrela:
+
+```bash
+chmod +x ClassicForever-x86_64.AppImage && ./ClassicForever-x86_64.AppImage
+```
+
+Es la misma ventana que en Windows (estado, noticias, notas del parche, opciones) y **no necesita Steam ni `sudo`**:
+abre `WowB.exe` con Proton mediante [umu-launcher](https://github.com/Open-Wine-Components/umu-launcher) (va dentro) y
+pone la clave del servidor. La primera vez que pulsas JUGAR descarga GE-Proton y el entorno de Steam (≈1,5 GB, en
+`~/.local/share/umu` y `~/.local/share/Steam/compatibilitytools.d`); las siguientes arranca al momento. En **Opciones**
+puedes cambiar a Wine del sistema y añadir el launcher al menú de aplicaciones.
+
+- Sigue haciendo falta el cliente beta instalado (con Battle.net en Lutris/Bottles/Steam, o copiando la carpeta
+  `_classic_beta_` desde un Windows). La AppImage busca `_classic_beta_` sola en los prefijos habituales y en los discos
+  de Windows montados; si no la encuentra, elígela en Opciones.
+- Usa un prefijo de Wine propio (`~/.local/share/classic-forever-launcher/prefix`): no toca el de Battle.net.
+- Registro en `_classic_beta_/Logs/launcher-linux.log` (y lo que dice Proton en `proton.log`).
+- Se compila en GitHub Actions con [`linux/appimage/build.sh`](linux/appimage/build.sh) (Python 3.12 portable con Tk +
+  umu-launcher, comprobados por SHA-256).
+
+### A mano: Steam, Wine o Lutris
+
+Si prefieres tu propia configuración, [`linux/classic-forever-linux.py`](linux/classic-forever-linux.py)
+(Python 3, sin dependencias) hace lo mismo desde fuera del juego. También está dentro de la AppImage:
+`./ClassicForever-x86_64.AppImage --patcher <comando del juego>` acepta los mismos argumentos.
 
 **Steam + Proton**
 1. Descarga el script: `curl -LO https://raw.githubusercontent.com/defexnicolas/wow-classic-launcher/main/linux/classic-forever-linux.py`
