@@ -33,8 +33,9 @@ namespace ForeverLauncher
         public long LoginMs = -1;
         public bool FeedOk, FeedFresh, FeedLoginUp, FeedWorldUp, Maintenance;
         public FeedEntry Root = new FeedEntry(null);   // "message" / "message_en"
-        public string LatestLauncher, LauncherUrl;
+        public string LatestLauncher, LauncherUrl, MinLauncher;   // MinLauncher: por debajo, el boton JUGAR pasa a ACTUALIZAR
         public List<FeedEntry> News = new List<FeedEntry>();
+        public List<FeedEntry> PatchNotes = new List<FeedEntry>();   // mismo formato que News
         public List<FeedEntry> Links = new List<FeedEntry>();
         public List<string> ClientBuilds = new List<string>();   // builds admitidos anunciados por el servidor
     }
@@ -103,12 +104,17 @@ namespace ForeverLauncher
                 s.Root = new FeedEntry(root);
 
                 var launcher = root.ContainsKey("launcher") ? root["launcher"] as Dictionary<string, object> : null;
-                if (launcher != null) { s.LatestLauncher = Str(launcher, "version"); s.LauncherUrl = Str(launcher, "url"); }
+                if (launcher != null) { s.LatestLauncher = Str(launcher, "version"); s.LauncherUrl = Str(launcher, "url"); s.MinLauncher = Str(launcher, "min"); }
 
                 foreach (var o in List(root, "news"))
                 {
                     var d = o as Dictionary<string, object>;
                     if (d != null) s.News.Add(new FeedEntry(d));
+                }
+                foreach (var o in List(root, "patchNotes"))
+                {
+                    var d = o as Dictionary<string, object>;
+                    if (d != null) s.PatchNotes.Add(new FeedEntry(d));
                 }
                 foreach (var o in List(root, "links"))
                 {

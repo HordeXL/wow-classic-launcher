@@ -2,7 +2,9 @@
 
 Launcher para jugar en el servidor **Classic Forever** con el cliente beta **1.60.1** (`WowB.exe`).
 Sustituye a `play-beta.bat` / `Jugar-Beta.bat`: hace lo mismo, pero con una ventana, el estado del servidor
-y las novedades. En **español e inglés** (selector ES | EN arriba a la derecha; la primera vez usa el idioma de Windows).
+las novedades y las notas del parche. En **español e inglés** (selector ES | EN arriba a la derecha; la primera vez usa el idioma de Windows).
+
+El diseño de la ventana (marco, logo y botones, desde la 1.2.0) lo propuso un jugador de la comunidad.
 
 ![captura](docs/screenshot.png)
 
@@ -76,7 +78,8 @@ Al pulsar **JUGAR**:
 4. Se queda en la bandeja del sistema mientras juegas (reaplica la clave si el cliente la reinicia) y se cierra
    solo cuando cierras el juego.
 
-**No** modifica ficheros del juego (salvo esa línea del `.wtf`), **no** descarga ni ejecuta nada, **no** toca otros
+**No** modifica ficheros del juego (salvo esa línea del `.wtf`, y la carpeta `Cache` si pulsas **Opciones → Borrar caché**,
+que solo funciona con el juego cerrado y pide confirmación), **no** descarga ni ejecuta nada, **no** toca otros
 procesos y **no** envía datos tuyos a ningún sitio. El registro queda en `_classic_beta_\Logs\launcher.log`.
 
 > Casi siempre entras a la primera. Si el primer intento de entrar al reino falla ("reason 24" o vuelves al
@@ -92,13 +95,15 @@ La ventana muestra si el servidor está en línea de dos formas:
   novedades, enlaces y la última versión del launcher. Lo publica el servidor cada minuto con
   [`server/publish_status.py`](server/publish_status.py). Si tiene más de 15 minutos, el launcher no se fía de él.
 
-Si hay una versión nueva, el launcher **solo avisa** y abre esta página: no se actualiza solo.
+Si hay una versión nueva, el launcher **solo avisa** y abre esta página: no se actualiza solo. Solo si el servidor deja
+de admitir tu versión (`launcher.min`), el botón JUGAR pasa a **ACTUALIZAR**.
 
 ## Problemas
 
 | Síntoma | Qué hacer |
 |---|---|
 | "No encuentro WowB.exe" | **Cambiar carpeta** y elige `_classic_beta_` (o la carpeta `World of Warcraft` que la contiene). |
+| Datos raros o vacíos en objetos, misiones o NPC | **Opciones → Borrar caché** con el juego cerrado. |
 | "Tu cliente es la build …" | Battle.net actualizó el cliente a un build que el servidor todavía no admite. Espera a la próxima versión. |
 | "No llego desde tu red" | El servidor está en línea pero tu red no llega a `auth.gpon.com.co` (firewall, VPN, DNS). |
 | Error 1023 al conectar | El portal debe ser `auth.gpon.com.co`; el launcher lo corrige solo al pulsar JUGAR. |
@@ -121,6 +126,10 @@ tag `vX.Y.Z`. El workflow compila, calcula el SHA-256 y crea la release.
 
 - `server/news.json`: textos en español; añade `title_en`, `text_en`, `message_en` o `label_en` para la versión en inglés (si falta, se muestra el español). Mantenimiento (`"maintenance": true` + `"message"`), novedades, enlaces (solo `https://`) y la
   versión publicada del launcher. Los cambios salen en el siguiente minuto.
+- `patchNotes`: lista con el mismo formato que `news` (`date`, `title`, `text`, `url`, `*_en`); sale en la pestaña
+  **Notas del parche**.
+- `launcher.min`: versión mínima admitida. Los launchers por debajo cambian JUGAR por ACTUALIZAR (lo entienden desde la
+  1.2.0; los anteriores solo ven el aviso de `launcher.version`). Úsalo solo cuando una versión vieja ya no sirva.
 - `server/publish_status.py --once` imprime el JSON sin publicar; `server/classic-forever-status.service` lo deja
   como servicio de usuario de systemd.
 
