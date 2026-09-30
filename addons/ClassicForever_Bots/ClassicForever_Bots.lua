@@ -204,7 +204,9 @@ end
 
 local Refresh   -- se define abajo
 
-UIDropDownMenu_Initialize(dungeonDD, function(self, level)
+-- El cliente llama a estas funciones ya en UIDropDownMenu_Initialize: se registran en ADDON_LOADED (con db cargado)
+local function InitDungeonMenu(self, level)
+    if not db then return end
     local info = UIDropDownMenu_CreateInfo()
     info.text, info.value, info.checked = L.AutoDetected:format(CurrentDungeon() and ns.DungeonName(CurrentDungeon()) or "—"), "auto", db.dungeon == "auto"
     info.func = function() db.dungeon = "auto"; Refresh() end
@@ -216,16 +218,17 @@ UIDropDownMenu_Initialize(dungeonDD, function(self, level)
         info.func = function() db.dungeon = d.key; Refresh() end
         UIDropDownMenu_AddButton(info, level)
     end
-end)
+end
 
-UIDropDownMenu_Initialize(roleDD, function(self, level)
+local function InitRoleMenu(self, level)
+    if not db then return end
     for _, r in ipairs({ { "auto", "RoleAuto" }, { "tank", "Tank" }, { "healer", "Healer" }, { "dps", "Dps" } }) do
         local info = UIDropDownMenu_CreateInfo()
         info.text, info.value, info.checked = L[r[2]], r[1], db.role == r[1]
         info.func = function() db.role = r[1]; Refresh() end
         UIDropDownMenu_AddButton(info, level)
     end
-end)
+end
 
 local function FillGroup(key, role)
     local d = key and FindDungeon(key) or SelectedDungeon()
@@ -567,6 +570,8 @@ ev:SetScript("OnEvent", function(_, event, arg1)
         if db.point then F:ClearAllPoints(); F:SetPoint(db.point, UIParent, db.rel, db.x, db.y) end
         F:SetAlpha(db.alpha)
         F:SetScale(db.scale)
+        UIDropDownMenu_Initialize(dungeonDD, InitDungeonMenu)
+        UIDropDownMenu_Initialize(roleDD, InitRoleMenu)
         UpdateMinimap()
         Refresh()
     elseif event == "PLAYER_ENTERING_WORLD" or event == "ZONE_CHANGED_NEW_AREA" then
