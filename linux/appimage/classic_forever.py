@@ -29,7 +29,7 @@ import tkinter as tk
 import tkinter.font as tkfont
 from tkinter import filedialog, messagebox
 
-APP_VERSION = '1.2.0'   # igual que App.Version del launcher de Windows (build.sh lo comprueba)
+APP_VERSION = '1.3.0'   # igual que App.Version del launcher de Windows (build.sh lo comprueba)
 RELEASES_URL = 'https://github.com/defexnicolas/wow-classic-launcher/releases/latest'
 FEED_URL = 'https://raw.githubusercontent.com/defexnicolas/wow-classic-launcher/status/status.json'
 LOGIN_PORT, WORLD_PORT = 1119, 8085
@@ -107,6 +107,10 @@ T = {
     'set.cache':          ('CACHÉ DEL JUEGO', 'GAME CACHE'),
     'set.cachebtn':       ('Borrar caché', 'Clear cache'),
     'set.menu':           ('Añadir al menú de aplicaciones', 'Add to applications menu'),
+    'set.addons':         ('Instalar y actualizar solos los addons del servidor', 'Install and update the server addons automatically'),
+    'addon.installed':    ('Addon {0} {1} instalado.', 'Addon {0} {1} installed.'),
+    'addon.updated':      ('Addon {0} actualizado a {1}.', 'Addon {0} updated to {1}.'),
+    'addon.failed':       ('No se pudo instalar {0}: {1}', "Couldn't install {0}: {1}"),
     'set.menudone':       ('Añadido al menú de aplicaciones.', 'Added to the applications menu.'),
     'set.menuno':         ('Solo funciona al abrirlo desde la AppImage.', 'Only works when started from the AppImage.'),
     'cache.confirm':      ('Se borrará esta carpeta:\n{0}\n\nEl juego la vuelve a crear al entrar. ¿Continuar?',
@@ -283,6 +287,108 @@ def ssl_context():
     return ctx
 
 
+# ----------------------------------------------------------------------------------------------------------- addons del servidor
+# Como src/Addons.cs: status.json "addons": [{name, version, url, sha256}], solo desde las Releases de este repo, SHA-256
+# comprobado, solo ficheros de addon dentro de su carpeta, y nunca con el juego abierto.
+ADDON_URL_PREFIX = 'https://github.com/defexnicolas/wow-classic-launcher/releases/download/'
+ADDON_EXT = ('.lua', '.toc', '.xml', '.png', '.tga', '.blp', '.md', '.txt')
+ADDON_MAX = 8 * 1024 * 1024
+
+
+def addon_valid(a):
+    import re
+    return (isinstance(a, dict) and re.match(r'^[A-Za-z0-9_]{1,64}$', str(a.get('name', ''))) is not None
+            and re.match(r'^[0-9A-Za-z.\-]{1,20}$', str(a.get('version', ''))) is not None
+            and str(a.get('url', '')).startswith(ADDON_URL_PREFIX) and '..' not in str(a.get('url'))
+            and (not a.get('sha256') or re.match(r'^[0-9a-fA-F]{64}$', str(a['sha256'])) is not None))
+
+
+def addon_version(game_dir, name):
+    """'## Version:' del .toc instalado, o None si no esta."""
+    import re
+    toc = os.path.join(game_dir, 'Interface', 'AddOns', name, name + '.toc')
+    try:
+        with open(toc, encoding='utf-8', errors='replace') as f:
+            for line in f:
+                m = re.match(r'^##\s*Version:\s*(\S+)', line)
+                if m:
+                    return m.group(1)
+        return '?'
+    except OSError:
+        return None
+
+
+def addon_install_zip(game_dir, a, data, expected):
+    import hashlib
+    import io
+    import zipfile
+    if len(data) > ADDON_MAX:
+        raise ValueError('zip > 8 MB')
+    if hashlib.sha256(data).hexdigest().lower() != str(expected).lower():
+        raise ValueError('SHA-256 no coincide')
+    name = a['name']
+    addons = os.path.join(game_dir, 'Interface', 'AddOns')
+    os.makedirs(addons, exist_ok=True)
+    staging = os.path.join(addons, '.' + name + '.new')
+    shutil.rmtree(staging, ignore_errors=True)
+    os.makedirs(staging)
+    try:
+        real_staging = os.path.realpath(staging) + os.sep
+        total = 0
+        with zipfile.ZipFile(io.BytesIO(data)) as z:
+            for info in z.infolist():
+                rel = info.filename.replace('\\', '/')
+                if rel.endswith('/'):
+                    continue
+                if not rel.startswith(name + '/'):
+                    raise ValueError('fichero fuera de %s: %s' % (name, rel))
+                if os.path.splitext(rel)[1].lower() not in ADDON_EXT:
+                    raise ValueError('tipo de fichero no permitido: ' + rel)
+                dest = os.path.realpath(os.path.join(staging, rel[len(name) + 1:]))
+                if not dest.startswith(real_staging):
+                    raise ValueError('ruta no permitida: ' + rel)
+                total += info.file_size
+                if total > ADDON_MAX * 4:
+                    raise ValueError('addon demasiado grande')
+                os.makedirs(os.path.dirname(dest), exist_ok=True)
+                with z.open(info) as src, open(dest, 'wb') as out:
+                    shutil.copyfileobj(src, out)
+        if not os.path.isfile(os.path.join(staging, name + '.toc')):
+            raise ValueError('falta %s.toc' % name)
+    except Exception:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise
+    target = os.path.join(addons, name)
+    old = os.path.join(addons, '.' + name + '.old')
+    shutil.rmtree(old, ignore_errors=True)
+    if os.path.isdir(target):
+        os.rename(target, old)
+    os.rename(staging, target)
+    shutil.rmtree(old, ignore_errors=True)
+
+
+def addon_sync(game_dir, addons):
+    """Instala o actualiza; lista de (clave del mensaje, args, color)."""
+    out = []
+    for a in addons:
+        have = addon_version(game_dir, a['name'])
+        if have == a['version']:
+            continue
+        try:
+            ua = {'User-Agent': 'ClassicForever-Linux/' + APP_VERSION}
+            with urllib.request.urlopen(urllib.request.Request(a['url'], headers=ua), timeout=30, context=ssl_context()) as r:
+                data = r.read(ADDON_MAX + 1)
+            expected = a.get('sha256')
+            if not expected:
+                with urllib.request.urlopen(urllib.request.Request(a['url'] + '.sha256', headers=ua), timeout=15, context=ssl_context()) as r:
+                    expected = r.read(200).decode().split()[0]
+            addon_install_zip(game_dir, a, data, expected)
+            out.append(('addon.installed' if have is None else 'addon.updated', (a['name'], a['version']), GREEN))
+        except Exception as ex:
+            out.append(('addon.failed', (a['name'], str(ex)), AMBER))
+    return out
+
+
 # ----------------------------------------------------------------------------------------------------------- estado
 class Status:
     def __init__(self):
@@ -290,7 +396,7 @@ class Status:
         self.login_ms = -1
         self.feed_ok = self.feed_fresh = self.feed_login = self.maintenance = False
         self.root = {}
-        self.news, self.patch_notes, self.links, self.client_builds = [], [], [], []
+        self.news, self.patch_notes, self.links, self.client_builds, self.addons = [], [], [], [], []
         self.latest = self.min = None
         self.launcher_url = RELEASES_URL
 
@@ -335,6 +441,7 @@ def fetch_status():
                 s.launcher_url = lau['url']
             import re
             s.client_builds = [v for v in root.get('clientBuilds') or [] if isinstance(v, str) and re.match(r'^1\.60\.\d+\.\d{5}$', v)]
+            s.addons = [a for a in root.get('addons') or [] if addon_valid(a)]
     except Exception:
         pass
     for t in th:
@@ -506,6 +613,11 @@ class App:
         self.proton_menu.pack(side='left', padx=(6, 0))
         self.s_proton_hint = tk.Label(fr, bg=bg, fg=DIM, font=self.f['small'], anchor='w', justify='left', wraplength=405)
         self.s_proton_hint.pack(fill='x', padx=(20, 0), pady=(2, 8))
+        self.addons_var = tk.BooleanVar(value=self.settings.get('addons', True))
+        self.c_addons = tk.Checkbutton(fr, variable=self.addons_var, command=self.addons_changed, bg=bg, fg=BODY,
+                                       selectcolor='#2A1D14', activebackground=bg, activeforeground='#FFF7D5',
+                                       font=self.f['small'], anchor='w', highlightthickness=0, bd=0)
+        self.c_addons.pack(fill='x', pady=(0, 6))
         self.b_menu = self.button(fr, self.add_to_menu); self.b_menu.pack(anchor='w')
         return fr
 
@@ -535,6 +647,7 @@ class App:
         self.b_log.configure(text=L('set.log'))
         self.b_cache.configure(text=L('set.cachebtn'))
         self.b_menu.configure(text=L('set.menu'))
+        self.c_addons.configure(text=L('set.addons'))
         self.b_folder.configure(text=L('set.change' if self.game_dir else 'set.pick'))
         self.s_client.configure(text=L('ui.client', self.client_version) + ('  ✓' if self.client_ok else '') if self.client_version else '')
         self.render_status()
@@ -593,7 +706,7 @@ class App:
     def on_status(self, s):
         if not s.feed_ok and self.status and self.status.feed_ok:   # fallo puntual del status.json: se conserva lo anterior
             old = self.status
-            for k in ('feed_ok', 'root', 'news', 'patch_notes', 'links', 'latest', 'min', 'launcher_url', 'client_builds'):
+            for k in ('feed_ok', 'root', 'news', 'patch_notes', 'links', 'latest', 'min', 'launcher_url', 'client_builds', 'addons'):
                 setattr(s, k, getattr(old, k))
         self.status = s
         if s.client_builds:
@@ -609,6 +722,7 @@ class App:
             self.step('ui.mustupdate', s.min, color=AMBER)
         elif not self.client_ok and not self.game_running and self.game_dir:
             self.set_game_dir(self.game_dir, save=False)   # la build se vuelve a comprobar con los clientBuilds recibidos
+        self.sync_addons()
 
     def render_status(self):
         c, s = self.c, self.status
@@ -737,6 +851,7 @@ class App:
 
     def set_game_dir(self, d, save=True):
         self.game_dir = d
+        self.addons_done_for = None
         err = self.check_game_dir(d)
         self.client_ok = err is None
         self.s_folder.configure(text=d or '—')
@@ -839,6 +954,31 @@ class App:
             self.step('cache.done', color=GREEN)
         except OSError as ex:
             self.step('!' + str(ex), color=RED)
+
+    def addons_changed(self):
+        self.settings['addons'] = bool(self.addons_var.get())
+        save_settings(self.settings)
+        self.addons_done_for = None
+        self.sync_addons()
+
+    def sync_addons(self):
+        """Addons del servidor: en un hilo, con el juego cerrado, una vez por carpeta del juego y sesion."""
+        s = self.status
+        if (getattr(self, 'addons_busy', False) or not self.settings.get('addons', True) or not self.client_ok
+                or self.game_running or not self.game_dir or getattr(self, 'addons_done_for', None) == self.game_dir
+                or s is None or not s.feed_ok or not s.addons or P.find_clients()):
+            return
+        self.addons_busy = True
+        gd, addons = self.game_dir, list(s.addons)
+
+        def work():
+            try:
+                for key, args, color in addon_sync(gd, addons):
+                    self.q.put(('stepargs', key, args, color))
+                self.addons_done_for = gd
+            finally:
+                self.addons_busy = False
+        threading.Thread(target=work, daemon=True).start()
 
     def add_to_menu(self):
         appimage = os.environ.get('APPIMAGE')
@@ -965,6 +1105,8 @@ class App:
                     self.on_status(msg[1])
                 elif kind == 'step':
                     self.step(msg[1], color=msg[2])
+                elif kind == 'stepargs':
+                    self.step(msg[1], *msg[2], color=msg[3])
                 elif kind == 'stepraw':
                     self.step('!' + msg[1], color=msg[2])
                 elif kind == 'ended':
@@ -973,6 +1115,7 @@ class App:
                     self.b_folder.configure(state='normal')
                     self.b_cache.configure(state='normal' if self.client_ok else 'disabled')
                     self.root.deiconify()
+                    self.sync_addons()
         except queue.Empty:
             pass
         self.root.after(150, self.pump)

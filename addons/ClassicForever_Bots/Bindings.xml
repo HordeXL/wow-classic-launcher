@@ -1,0 +1,13 @@
+<Bindings>
+    <Binding name="CFBOTS_TOGGLE" header="CFBOTS">CFBots_Toggle()</Binding>
+    <Binding name="CFBOTS_START">CFBots_Order("start")</Binding>
+    <Binding name="CFBOTS_STOP">CFBots_Order("stop")</Binding>
+    <Binding name="CFBOTS_FOLLOW">CFBots_Order("follow")</Binding>
+    <Binding name="CFBOTS_WAIT">CFBots_Order("wait")</Binding>
+    <Binding name="CFBOTS_PULL">CFBots_Order("pull")</Binding>
+    <Binding name="CFBOTS_REST">CFBots_Order("rest")</Binding>
+    <Binding name="CFBOTS_ATTACK">CFBots_Order("attack")</Binding>
+    <Binding name="CFBOTS_PULLTARGET">CFBots_Order("pulltarget")</Binding>
+    <Binding name="CFBOTS_SKIP">CFBots_Order("skip")</Binding>
+    <Binding name="CFBOTS_BACK">CFBots_Order("back")</Binding>
+</Bindings>

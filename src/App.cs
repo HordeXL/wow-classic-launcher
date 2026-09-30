@@ -28,7 +28,7 @@ namespace ForeverLauncher
 {
     public static class App
     {
-        public const string Version = "1.2.0";
+        public const string Version = "1.3.0";
         public const string ReleasesUrl = "https://github.com/defexnicolas/wow-classic-launcher/releases/latest";
 
         [STAThread]
@@ -96,6 +96,10 @@ namespace ForeverLauncher
         string clientVersion;
         bool clientOk;
         Tab tab = Tab.News;
+        CheckBox addonsCheck;
+        TextBlock addonsText;
+        bool addonsBusy;
+        string addonsDoneFor;          // carpeta del juego ya sincronizada en esta sesion
         bool mustUpdate;               // status.json launcher.min > esta version: el boton grande pasa a ACTUALIZAR
 
         enum Tab { News, Patch, Settings }
@@ -126,6 +130,9 @@ namespace ForeverLauncher
             feedView = Find<FrameworkElement>("FeedView"); settingsView = Find<FrameworkElement>("SettingsView");
             navNews = Find<Button>("BtnNewsNav"); navPatch = Find<Button>("BtnPatchNav"); navSettings = Find<Button>("BtnSettingsNav");
             langEs = Find<Button>("LangEs"); langEn = Find<Button>("LangEn");
+            addonsCheck = Find<CheckBox>("AddonsCheck"); addonsText = Find<TextBlock>("AddonsText");
+            addonsCheck.IsChecked = Settings.AddonsEnabled;
+            addonsCheck.Click += (s, e) => { Settings.AddonsEnabled = addonsCheck.IsChecked == true; addonsDoneFor = null; SyncAddons(); };
 
             Find<Image>("BgImage").Source = Img("panel.png");
             Find<Image>("LogoImage").Source = Img("logo.png");
@@ -209,6 +216,9 @@ namespace ForeverLauncher
             Find<TextBlock>("FolderLabel").Text = L.Get("set.folder");
             Find<TextBlock>("CacheLabel").Text = L.Get("set.cache");
             Find<TextBlock>("CacheHint").Text = L.Get("set.cachehint");
+            Find<TextBlock>("AddonsLabel").Text = L.Get("set.addons");
+            Find<TextBlock>("AddonsCheckText").Text = L.Get("set.addonsauto");
+            PaintAddons();
             Find<Button>("MinButton").ToolTip = L.Get("ui.minimize");
             Find<Button>("CloseButton").ToolTip = L.Get("ui.close");
             logButton.Content = L.Get("ui.viewlog");
@@ -304,6 +314,42 @@ namespace ForeverLauncher
             RenderFeed();
             // La build del cliente se comprobo al arrancar, antes de conocer los clientBuilds del status.json: se repite.
             if (!clientOk && !gameRunning && gameDir != null) SetGameDir(gameDir, false);
+            SyncAddons();
+        }
+
+        // ------------------------------------------------------------------ addons del servidor (Addons.cs)
+        async void SyncAddons()
+        {
+            if (addonsBusy || !Settings.AddonsEnabled || !clientOk || gameRunning || gameDir == null || addonsDoneFor == gameDir
+                || lastStatus == null || !lastStatus.FeedOk || lastStatus.Addons.Count == 0)
+            {
+                PaintAddons();
+                return;
+            }
+            if (Process.GetProcessesByName(Path.GetFileNameWithoutExtension(Patcher.ExeName)).Length > 0)
+                return;   // con el juego abierto no se tocan sus addons; se reintenta en el siguiente refresco
+            addonsBusy = true;
+            string dir = gameDir;
+            try
+            {
+                foreach (Msg m in await AddonInstaller.SyncAsync(dir, lastStatus.Addons))
+                    Step(m);
+                addonsDoneFor = dir;
+            }
+            finally { addonsBusy = false; PaintAddons(); }
+        }
+
+        void PaintAddons()
+        {
+            if (addonsText == null) return;
+            var parts = new System.Collections.Generic.List<string>();
+            if (gameDir != null && lastStatus != null)
+                foreach (var a in lastStatus.Addons)
+                {
+                    string v = AddonInstaller.InstalledVersion(gameDir, a.Name);
+                    if (v != null) parts.Add(a.Name + " " + v);
+                }
+            addonsText.Text = parts.Count > 0 ? string.Join("  ·  ", parts) : L.Get("set.addonsnone");
         }
 
         void RenderStatus(ServerStatus s)
@@ -421,6 +467,7 @@ namespace ForeverLauncher
             clientText.Text = version == null ? "" : L.Get("ui.client", version) + (clientOk ? "  ✓" : "");
             folderButton.Content = L.Get(dir == null ? "ui.pickfolder" : "ui.changefolder");
             cacheButton.IsEnabled = clientOk && !gameRunning;
+            addonsDoneFor = null;
             if (err != null) Step(err);
             else
             {
@@ -515,6 +562,7 @@ namespace ForeverLauncher
                     PaintPlayButton();
                     folderButton.IsEnabled = true;
                     cacheButton.IsEnabled = clientOk;
+                    SyncAddons();
                     HideTray();
                     RestoreWindow();
                     break;
@@ -627,6 +675,26 @@ namespace ForeverLauncher
         public static void SaveGameDir(string dir)
         {
             try { Directory.CreateDirectory(Path.GetDirectoryName(FilePath)); File.WriteAllText(FilePath, dir); } catch { }
+        }
+
+        // addons del servidor: activado salvo que exista addons_off.txt
+        static string AddonsOffFile
+        {
+            get { return Path.Combine(Path.GetDirectoryName(FilePath), "addons_off.txt"); }
+        }
+
+        public static bool AddonsEnabled
+        {
+            get { return !File.Exists(AddonsOffFile); }
+            set
+            {
+                try
+                {
+                    if (value) File.Delete(AddonsOffFile);
+                    else { Directory.CreateDirectory(Path.GetDirectoryName(AddonsOffFile)); File.WriteAllText(AddonsOffFile, "1"); }
+                }
+                catch { }
+            }
         }
     }
 

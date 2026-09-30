@@ -20,10 +20,21 @@ jobs:
           linux/appimage/build.sh
           cd dist && sha256sum ClassicForever-x86_64.AppImage > ClassicForever-x86_64.AppImage.sha256
 
+      - name: Addons del servidor (addons/<nombre> -> dist/<nombre>.zip, los instala el launcher)
+        run: |
+          cd addons
+          for d in */; do
+            n="${d%/}"
+            zip -qrX "../dist/$n.zip" "$n"
+            (cd ../dist && sha256sum "$n.zip" > "$n.zip.sha256")
+          done
+
       - uses: actions/upload-artifact@v4
         with:
           name: ClassicForever-AppImage
-          path: dist/ClassicForever-x86_64.AppImage*
+          path: |
+            dist/ClassicForever-x86_64.AppImage*
+            dist/*.zip*
 
   build:
     needs: appimage
@@ -68,4 +79,5 @@ jobs:
 
           Windows mostrará "Windows protegió su PC" porque el ejecutable no está firmado: pulsa **Más información → Ejecutar de todas formas**. Ver el README.
           "@
-          gh release create $env:GITHUB_REF_NAME dist/ClassicForever.exe dist/ClassicForever.exe.sha256 dist/ClassicForever-x86_64.AppImage dist/ClassicForever-x86_64.AppImage.sha256 linux/classic-forever-linux.py --title "Classic Forever Launcher $env:GITHUB_REF_NAME" --notes $notes
+          $addons = (Get-ChildItem dist/*.zip, dist/*.zip.sha256).FullName
+          gh release create $env:GITHUB_REF_NAME dist/ClassicForever.exe dist/ClassicForever.exe.sha256 dist/ClassicForever-x86_64.AppImage dist/ClassicForever-x86_64.AppImage.sha256 linux/classic-forever-linux.py @addons --title "Classic Forever Launcher $env:GITHUB_REF_NAME" --notes $notes

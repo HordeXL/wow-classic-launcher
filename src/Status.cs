@@ -38,6 +38,7 @@ namespace ForeverLauncher
         public List<FeedEntry> PatchNotes = new List<FeedEntry>();   // mismo formato que News
         public List<FeedEntry> Links = new List<FeedEntry>();
         public List<string> ClientBuilds = new List<string>();   // builds admitidos anunciados por el servidor
+        public List<AddonInfo> Addons = new List<AddonInfo>();   // addons del servidor (Addons.cs)
     }
 
     public static class StatusClient
@@ -129,6 +130,13 @@ namespace ForeverLauncher
                     if (v != null && System.Text.RegularExpressions.Regex.IsMatch(v, @"^1\.60\.\d+\.\d{5}$")) s.ClientBuilds.Add(v);
                 }
                 if (s.ClientBuilds.Count > 0) Patcher.FeedVersions = s.ClientBuilds.ToArray();
+                foreach (var o in List(root, "addons"))
+                {
+                    var d = o as Dictionary<string, object>;
+                    if (d == null) continue;
+                    var a = new AddonInfo { Name = Str(d, "name"), Version = Str(d, "version"), Url = Str(d, "url"), Sha256 = Str(d, "sha256") };
+                    if (AddonInstaller.Valid(a)) s.Addons.Add(a);
+                }
             }
             catch { }
         }

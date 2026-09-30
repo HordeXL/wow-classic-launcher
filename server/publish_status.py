@@ -55,6 +55,7 @@ def build_status(a):
         "links": extra.get("links", []),
         "launcher": extra.get("launcher", {}),
         "clientBuilds": extra.get("clientBuilds", []),
+        "addons": extra.get("addons", []),
     }
 
 

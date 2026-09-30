@@ -110,6 +110,19 @@ procesos y **no** envía datos tuyos a ningún sitio. El registro queda en `_cla
 > Casi siempre entras a la primera. Si el primer intento de entrar al reino falla ("reason 24" o vuelves al
 > login), espera al aviso **Listo** y vuelve a entrar **sin cerrar el juego**.
 
+## Addons del servidor
+
+El launcher (Windows y la AppImage) instala y mantiene al día los addons propios del servidor, por ahora
+[`ClassicForever_Bots`](addons/ClassicForever_Bots) (panel de los bots de mazmorra: llenar el grupo, darles órdenes y
+ver su vida y maná). Se desactiva en **Opciones → Addons del servidor**.
+
+- Los anuncia `status.json` (`"addons": [{name, version, url, sha256}]`) y solo se descargan de las Releases de este
+  repo; el zip se comprueba con su SHA-256 (el del feed o el `.sha256` publicado al lado).
+- Solo se aceptan ficheros de addon (`.lua .toc .xml .png .tga .blp .md .txt`) dentro de la carpeta del addon; si algo
+  no cuadra no se toca la versión instalada.
+- Nunca con el juego abierto: se reintenta al cerrarlo. Se instala en `_classic_beta_\Interface\AddOns\<nombre>`.
+- El workflow empaqueta cada carpeta de `addons/` en `<nombre>.zip` + `.sha256` en cada Release.
+
 ## Estado del servidor
 
 La ventana muestra si el servidor está en línea de dos formas:
@@ -153,6 +166,8 @@ tag `vX.Y.Z`. El workflow compila, calcula el SHA-256 y crea la release.
   versión publicada del launcher. Los cambios salen en el siguiente minuto.
 - `patchNotes`: lista con el mismo formato que `news` (`date`, `title`, `text`, `url`, `*_en`); sale en la pestaña
   **Notas del parche**.
+- `addons`: `[{"name", "version", "url"[, "sha256"]}]`; `url` tiene que ser una Release de este repo. La versión se
+  compara con `## Version:` del `.toc` instalado.
 - `launcher.min`: versión mínima admitida. Los launchers por debajo cambian JUGAR por ACTUALIZAR (lo entienden desde la
   1.2.0; los anteriores solo ven el aviso de `launcher.version`). Úsalo solo cuando una versión vieja ya no sirva.
 - `server/publish_status.py --once` imprime el JSON sin publicar; `server/classic-forever-status.service` lo deja

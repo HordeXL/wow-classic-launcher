@@ -222,6 +222,11 @@
         <WrapPanel>
           <Button x:Name="CacheButton" Content=" " Style="{StaticResource FlatButton}"/>
         </WrapPanel>
+        <TextBlock x:Name="AddonsLabel" Text=" " FontSize="11" FontWeight="Bold" Foreground="{StaticResource Dim}" Margin="0,8,0,2"/>
+        <CheckBox x:Name="AddonsCheck" Foreground="{StaticResource Body}" FontSize="12" Cursor="Hand">
+          <TextBlock x:Name="AddonsCheckText" Text=" " Foreground="{StaticResource Body}"/>
+        </CheckBox>
+        <TextBlock x:Name="AddonsText" Text=" " FontSize="12" Foreground="{StaticResource Dim}" TextWrapping="Wrap" Margin="0,3,0,0"/>
       </StackPanel>
 
       <!-- Derecha arriba: estado del reino -->

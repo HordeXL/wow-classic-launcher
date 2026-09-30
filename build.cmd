@@ -19,7 +19,7 @@ if not exist dist mkdir dist
   /resource:src\img\nav_patch.png,ForeverLauncher.img.nav_patch.png ^
   /resource:src\img\nav_settings.png,ForeverLauncher.img.nav_settings.png ^
   /r:"%FW%\WPF\PresentationFramework.dll" /r:"%FW%\WPF\PresentationCore.dll" /r:"%FW%\WPF\WindowsBase.dll" ^
-  /r:"%FW%\System.Xaml.dll" /r:"%FW%\System.Web.Extensions.dll" /r:System.Windows.Forms.dll /r:System.Drawing.dll ^
+  /r:"%FW%\System.Xaml.dll" /r:"%FW%\System.Web.Extensions.dll" /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:"%FW%\System.IO.Compression.dll" /r:"%FW%\System.IO.Compression.FileSystem.dll" ^
   src\*.cs
 if errorlevel 1 exit /b 1
 echo OK: dist\ClassicForever.exe
